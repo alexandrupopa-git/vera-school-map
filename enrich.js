@@ -9,7 +9,7 @@
   const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
   async function opQuery(q) {
     for (const u of OVERPASS) {
-      const j = await NET.json(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeoutMs: 20000 });
+      const j = await NET.json(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeoutMs: 12000 });
       if (j && j.elements) return j;
     }
     return null;
@@ -95,12 +95,14 @@
             <div class="tiny muted">Open-Meteo / Copernicus CAMS European model (~10 km grid, updated hourly, ${esc((aq.time || '').replace('T', ' '))}). Area-level, not street-level: roadside NO₂ can be 1.5–2× higher within 50–100 m of a busy road. WHO 2021 annual guidelines: PM2.5 5, NO₂ 10, PM10 15 µg/m³; UK legal limits 20 / 40 / 40. For long-term street-level maps open London Air / LAEI under Risks.</div>` : `<span class="muted small">${status}</span>`}</dd>
         </dl>`;
     };
-    if (cache[k]) { render(cache[k].osm, cache[k].drives, cache[k].aq, 'offline'); return; }
-    render(null, driveEstimate(p.lat, p.lon, nature), null, 'looking up…');
-    const [osm, drives, aq] = await Promise.all([overpass(p.lat, p.lon), driveTable(p.lat, p.lon, nature), air(p.lat, p.lon)]);
-    const dr = (drives || driveEstimate(p.lat, p.lon, nature)).sort((a, b) => (a.min ?? 1e9) - (b.min ?? 1e9));
-    cache[k] = { osm, drives: dr, aq };
-    if ($('#natureBox')) render(osm, dr, aq, 'not available (offline, or the service is busy)');
+    if (cache[k]) { render(cache[k].osm, cache[k].drives, cache[k].aq, 'not available (offline, or the service was busy)'); return; }
+    // render progressively: each source updates the block as it arrives
+    const st = { osm: undefined, drives: driveEstimate(p.lat, p.lon, nature), aq: undefined, pending: 3 };
+    const paint = () => { if ($('#natureBox') && $('#natureBox').dataset.key === k) render(st.osm || null, st.drives, st.aq || null, st.pending ? 'looking up…' : 'not available (offline, or the service is busy)'); };
+    el.dataset.key = k; paint();
+    overpass(p.lat, p.lon).then(o => { st.osm = o; }).finally(() => { st.pending--; paint(); });
+    driveTable(p.lat, p.lon, nature).then(d => { if (d) st.drives = d.sort((a, b) => (a.min ?? 1e9) - (b.min ?? 1e9)); }).finally(() => { st.pending--; paint(); });
+    air(p.lat, p.lon).then(a => { st.aq = a; }).finally(() => { st.pending--; paint(); if (!st.pending) cache[k] = { osm: st.osm || null, drives: st.drives, aq: st.aq || null }; });
   };
 
   // ---------------- air-quality layer ----------------
