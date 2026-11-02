@@ -203,7 +203,7 @@
     const pts = [];
     for (let i = 0; i < 90; i++) {
       const brg = i * 4; let lo = 0, hi = 6;
-      const ok = km => { const p = SM.dest(lat, lon, brg, km); return discs.every(d => SM.haversine(p[0], p[1], d.lat, d.lon) * (d.factor || 1) <= d.r); };
+      const ok = km => { const p = SM.dest(lat, lon, brg, km); return !SM.crossesThames(lat, lon, p[0], p[1]) && discs.every(d => SM.haversine(p[0], p[1], d.lat, d.lon) * (d.factor || 1) <= d.r); };
       if (!ok(0)) return null;
       for (let k = 0; k < 18; k++) { const mid = (lo + hi) / 2; if (ok(mid)) lo = mid; else hi = mid; }
       pts.push(SM.dest(lat, lon, brg, lo));

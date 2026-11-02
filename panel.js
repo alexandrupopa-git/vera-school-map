@@ -132,6 +132,21 @@
     return `<div class="tblwrap"><table class="tbl"><thead><tr><th>Site</th><th>≤ £2,500</th><th>≤ £3,000</th><th>incl. let agreed</th><th>Note</th></tr></thead><tbody>${X.listing_sites.map(s => s.landing ? `<tr><td><b>${s.name}</b></td><td colspan="3"><a href="${s.url}" target="_blank" rel="noopener">open Rightmove</a> and paste <span class="num">${esc(term)}</span> <button class="btn btn-sm" data-copy="${esc(term)}" type="button">copy</button></td><td class="tiny muted">${esc(s.note)}</td></tr>` : `<tr><td><b>${s.name}</b>${s.pets ? '<div class="tiny muted">pets filter on</div>' : ''}</td><td><a href="${build(s, 2500, false)}" target="_blank" rel="noopener">open</a></td><td><a href="${build(s, 3000, false)}" target="_blank" rel="noopener">open</a></td><td>${s.letagreed ? `<a href="${build(s, 3000, true)}" target="_blank" rel="noopener">open</a>` : '<span class="tiny muted">tick on site</span>'}</td><td class="tiny muted">${esc(s.note)}</td></tr>`).join('')}</tbody></table></div>
       <p class="tiny muted">${beds} bedrooms, within 0.5 mi of ${esc(term)}. OpenRent opens filtered results; Rightmove's result pages cannot be deep-linked from a postcode, so its link opens the lettings page and you paste the postcode (copy button); Zoopla and OnTheMarket use their standard URL patterns but could not be test-opened when this map was built — check the filters once. Pets: only Zoopla takes a pets flag in the URL; tick it on the other sites. Listings are never copied here: they go stale within days.</p>`;
   }
+  // Google encoded polyline (used by Rightmove's "draw a search" and Zoopla's polygon search URLs)
+  function encodePolyline(pts) {
+    let out = '', plat = 0, plng = 0;
+    const enc = v => { v = v < 0 ? ~(v << 1) : v << 1; let s = ''; while (v >= 0x20) { s += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; } return s + String.fromCharCode(v + 63); };
+    pts.forEach(([lat, lon]) => { const a = Math.round(lat * 1e5), b = Math.round(lon * 1e5); out += enc(a - plat) + enc(b - plng); plat = a; plng = b; });
+    return out;
+  }
+  function simplifyRing(poly, n) { const step = Math.max(1, Math.floor(poly.length / n)); const out = poly.filter((_, i) => i % step === 0); if (out[0][0] !== out[out.length - 1][0] || out[0][1] !== out[out.length - 1][1]) out.push(out[0]); return out; }
+  window.drawnAreaLinks = function (poly, london) {
+    const ring = simplifyRing(poly, 30); const enc = encodePolyline(ring); const beds = london ? 2 : 3;
+    const rm = max => `https://www.rightmove.co.uk/property-to-rent/map.html?locationIdentifier=${encodeURIComponent('USERDEFINEDAREA^{"polylines":"' + enc + '"}')}&minBedrooms=${beds}&maxBedrooms=${beds}&maxPrice=${max}&includeLetAgreed=true`;
+    const zp = max => `https://www.zoopla.co.uk/to-rent/map/property/london/?polyenc=${encodeURIComponent(enc)}&beds_min=${beds}&beds_max=${beds}&price_max=${max}&price_frequency=per_month&include_rented=true`;
+    return `<div class="links" style="margin-top:6px"><a href="${rm(2500)}" target="_blank" rel="noopener">Rightmove: this zone drawn on their map, ≤ £2,500</a><a href="${rm(3000)}" target="_blank" rel="noopener">Rightmove, ≤ £3,000</a><a href="${zp(2500)}" target="_blank" rel="noopener">Zoopla: this zone, ≤ £2,500</a><a href="${zp(3000)}" target="_blank" rel="noopener">Zoopla, ≤ £3,000</a></div>
+      <div class="tiny muted">The zone outline is passed to the site as a drawn search area (${ring.length - 1} points), so results are only inside it. Both include let-agreed homes to show the real market; tick pets on the site.</div>`;
+  };
   function tpl(u, p) { return u.replace('{lat}', p.lat.toFixed(5)).replace('{lon}', p.lon.toFixed(5)).replace('{pc}', encodeURIComponent(p.pc || '')).replace('{pcq}', (p.pc || '').replace(/\s+/g, '+')).replace('{dest}', p.dest || '').replace('{destq}', encodeURIComponent((p.dest || '') + ', London')).replace('{urn}', p.urn || ''); }
 
   // ------------------------------------------------------------------ school row
@@ -327,7 +342,8 @@
     // area estimate
     let area = 0; for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length]; area += (b[1] - a[1]) * (111.32 * Math.cos(a[0] * Math.PI / 180)) * ((a[0] + b[0]) / 2 - p.lat) * 111.32; } area = Math.abs(area);
     const bounds = pinZoneLayer.getBounds(); const w = SM.haversine(bounds.getSouth(), bounds.getWest(), bounds.getSouth(), bounds.getEast()), h = SM.haversine(bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getWest());
-    info.innerHTML = `Zone from <b>${discs.length}</b> schools: about <b class="num">${w.toFixed(1)} × ${h.toFixed(1)} km</b> (≈ ${area.toFixed(2)} km²). Tightest constraint: <b>${esc(discs.sort((a, b) => a.r - b.r)[0].name)}</b> (${fmt(discs[0].r)} km comfort radius).`;
+    const london = SM.pointContext(p.lat, p.lon).london;
+    info.innerHTML = window.drawnAreaLinks(poly, london) + `Zone from <b>${discs.length}</b> schools: about <b class="num">${w.toFixed(1)} × ${h.toFixed(1)} km</b> (≈ ${area.toFixed(2)} km²). Tightest constraint: <b>${esc(discs.sort((a, b) => a.r - b.r)[0].name)}</b> (${fmt(discs[0].r)} km comfort radius).`;
     const btn = $('#btnZoneStreets'); if (btn) btn.onclick = async () => {
       btn.disabled = true; btn.textContent = 'Looking up…';
       const sample = []; for (let i = 0; i < poly.length; i += Math.max(1, Math.floor(poly.length / 24))) sample.push(poly[i]); sample.push([p.lat, p.lon]);
@@ -426,7 +442,7 @@
         <li><b>Good primary</b> = Ofsted Good/Outstanding and 2-year KS2 RWM ≥ ${(C.ks2_bar * 100).toFixed(1)}%. <b>Strong secondary</b> = Attainment 8 ≥ ${(C.england_a8 + C.a8_bar_offset).toFixed(1)}. Both adjustable on the Map tab.</li>
         <li><b>Rings</b>: click a school. Solid ${C.latest_year}, dashed the two years before, dotted older, tinted disc = comfort radius. Richmond and Hounslow measure the walking route: rings are straight-line, the panel estimates the route (×${C.walking_factor}, via the nearest bridge across the Thames) and fetches a live route for a pin when online.</li>
         <li><b>Stress test</b>: the slider shrinks every cut-off; watch which spots survive.</li>
-        <li><b>Zone</b>: tick schools on the Pin tab to draw the streets where all of them stay comfortably in reach; list its postcode sectors and streets for agents.</li>
+        <li><b>Zone</b>: tick schools on the Pin tab to draw the streets where all of them stay comfortably in reach (zones stop at the Thames); list its postcode sectors and streets for agents, or open the zone as a drawn search on Rightmove / Zoopla.</li>
         <li><b>Share view</b> copies a link that reopens the same filters, pins and (small) shortlist.</li>
         <li><b>Search</b> takes a street or address ("Canbury Park Road, Kingston"), a postcode, a postcode district (KT2) or "lat, lon".</li>
         <li><b>Ask about this spot</b> (Pin tab) answers questions from the data on the panel. It needs an Anthropic API key pasted once in its settings; the key stays in your browser.</li>

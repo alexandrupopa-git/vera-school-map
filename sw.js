@@ -1,5 +1,5 @@
 // Minimal service worker: network first, fall back to the cached copy of the app's own files (so the last-loaded map opens offline).
-const CACHE = 'vsm-202611020857';
+const CACHE = 'vsm-202611020901';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {

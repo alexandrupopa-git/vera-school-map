@@ -25,6 +25,15 @@ def dest(lat, lon, brg, km):
     lo2 = lo1 + math.atan2(math.sin(b) * math.sin(d) * math.cos(la1), math.cos(d) - math.sin(la1) * math.sin(la2))
     return la2 * 180 / math.pi, lo2 * 180 / math.pi
 
+# simplified Thames line (same as engine.js) — zones stop at the river
+THAMES = [[51.4035,-0.3435],[51.3985,-0.3330],[51.4040,-0.3150],[51.4120,-0.3090],[51.4180,-0.3050],[51.4297,-0.3195],[51.4380,-0.3230],[51.4460,-0.3270],[51.4490,-0.3180],[51.4540,-0.3120],[51.4580,-0.3082],[51.4622,-0.3148],[51.4635,-0.3178],[51.4690,-0.3230],[51.4770,-0.3120],[51.4875,-0.2875],[51.4800,-0.2740],[51.4718,-0.2676],[51.4728,-0.2535],[51.4830,-0.2430],[51.4877,-0.2297],[51.4790,-0.2170],[51.4669,-0.2110],[51.4648,-0.1877],[51.4790,-0.1720]]
+def _ccw(p, q, r): return (r[1] - p[1]) * (q[0] - p[0]) > (q[1] - p[1]) * (r[0] - p[0])
+def crosses_thames(a, b):
+    n = 0
+    for i in range(len(THAMES) - 1):
+        c, d = THAMES[i], THAMES[i + 1]
+        if _ccw(a, c, d) != _ccw(b, c, d) and _ccw(a, b, c) != _ccw(a, b, d): n += 1
+    return n % 2 == 1
 # --- zones: use the workbook's High ratings (chance_ref) for the ranked spots, discs = comfort radii
 def zone_for(h, london):
     discs = []
@@ -48,6 +57,7 @@ def zone_for(h, london):
         brg = i * 4; lo, hi = 0, 6
         def ok(km):
             p = dest(h['lat'], h['lon'], brg, km)
+            if crosses_thames((h['lat'], h['lon']), p): return False
             return all(hav(p[0], p[1], d[1], d[2]) * d[4] <= d[3] for d in discs)
         if not ok(0): return None, discs
         for _ in range(18):
