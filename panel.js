@@ -264,9 +264,12 @@
       </details>
       <details class="sec" open><summary>Rent — ${rent ? rent.property : (london ? '2-bed' : '3-bed')}</summary>${renderRent(rent, budget, london, p)}</details>
       <details class="sec" open><summary>Commute & monthly total</summary>${renderCommute(p, cm, total, london)}</details>
-      <details class="sec"><summary>Search zone & streets</summary><div id="zoneBox">${renderZoneBox(p, sc)}</div></details>
+      <details class="sec" open><summary>Search zone & streets</summary><div id="zoneBox">${renderZoneBox(p, sc)}</div></details>
       <details class="sec" open><summary>Ask about this spot</summary><div id="chatBox"></div></details>
-      <details class="sec" open><summary>Rental listings — live searches</summary>${listingLinks(p.postcode, p.lat, p.lon, london)}</details>
+      <details class="sec" open><summary>Rental listings — live searches</summary>
+        <div id="zoneLinks" class="note"><b>This zone on Rightmove / Zoopla:</b> <span class="muted">computing the zone…</span></div>
+        <h4 style="margin-top:8px">By postcode (0.5 mi around ${p.postcode ? esc(p.postcode.sector || p.postcode.outcode) : 'the pin'})</h4>
+        ${listingLinks(p.postcode, p.lat, p.lon, london)}</details>
       <details class="sec" open><summary>Green space, nature & air</summary>${renderLife(p, park, london)}</details>
       <details class="sec"><summary>Risks to check before signing</summary>${renderRisks(p, hw, london)}</details>
       ${ranked ? `<details class="sec"><summary>Workbook notes for this spot</summary><dl class="kv" style="margin-top:6px"><dt>Primary</dt><dd>${esc(ranked.primary)}</dd><dt>Secondary</dt><dd>${esc(ranked.secondary)}</dd><dt>Grammar route</dt><dd>${esc(ranked.grammar)}</dd><dt>Verdict</dt><dd>${esc(ranked.verdict)}</dd></dl></details>` : ''}
@@ -366,10 +369,11 @@
     if (pinZoneLayer) { window.G.zones.removeLayer(pinZoneLayer); pinZoneLayer = null; }
     const ids = $$('[data-zone-toggle]:checked').map(cb => cb.dataset.sid);
     const discs = window.zoneDiscs(p.lat, p.lon, sc, ids);
-    const info = $('#zoneInfo'); if (!info) return;
-    if (!discs.length) { info.textContent = 'Tick at least one school.'; return; }
+    const info = $('#zoneInfo'); const zl = $('#zoneLinks'); if (!info) return;
+    if (!discs.length) { info.textContent = 'Tick at least one school.'; if (zl) zl.innerHTML = '<b>This zone on Rightmove / Zoopla:</b> <span class="muted">no High/Medium counting schools here, so no zone to draw — use the postcode links below.</span>'; return; }
     const poly = window.zonePolygon(p.lat, p.lon, discs);
-    if (!poly) { info.textContent = 'This pin is outside one of the ticked comfort radii, so there is no zone from here — untick that school or move the pin.'; return; }
+    if (!poly) { info.textContent = 'This pin is outside one of the ticked comfort radii, so there is no zone from here — untick that school or move the pin.'; if (zl) zl.innerHTML = '<b>This zone on Rightmove / Zoopla:</b> <span class="muted">the pin is outside one of the ticked schools\' comfort radii — adjust the ticks under Search zone.</span>'; return; }
+    if (zl) { const london = SM.pointContext(p.lat, p.lon).london; zl.innerHTML = `<b>This zone on Rightmove / Zoopla</b> — the ${discs.length}-school zone drawn as the search area (red outline on the map; change the schools under Search zone & streets):` + window.drawnAreaLinks(poly, london); }
     pinZoneLayer = L.polygon(poly, { color: '#e4572e', weight: 2.5, fill: true, fillColor: '#e4572e', fillOpacity: 0.12 });
     window.G.zones.addLayer(pinZoneLayer);
     // area estimate
