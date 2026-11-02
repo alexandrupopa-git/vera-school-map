@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", ".firebaserc", "**/.*", "**/node_modules/**", "tools/**", "source/**", "README.md"],
+    "headers": [{ "source": "**/*.@(js|css|html|webmanifest|svg|kml)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=600" }] }]
+  }
+}

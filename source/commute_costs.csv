@@ -1,0 +1,11 @@
+area,station,fare_zone,ticket,monthly_cost_gbp,source
+Kingston (KT2),Kingston,6,"Zone 1–6 Travelcard, monthly",313.4,TfL March 2026 fares (monthly = 3.84 × 7-day)
+"St Margarets / Richmond (TW1, TW9, TW10)",St Margarets / Richmond,4,"Zone 1–4 Travelcard, monthly",246.6,TfL March 2026 fares
+Wimbledon (SW19),Wimbledon,3,"Zone 1–3 Travelcard, monthly",201.6,TfL March 2026 fares
+"Barnes / Mortlake / North Sheen (SW13, SW14)","Barnes, Mortlake, North Sheen",3,"Zone 1–3 Travelcard, monthly",201.6,TfL March 2026 fares
+"Clapham / Battersea (SW4, SW11)",Clapham Junction / Clapham Common,2,"Zone 1–2 Travelcard, monthly",171.7,TfL March 2026 fares
+West Hampstead (NW6),West Hampstead,2,"Zone 1–2 Travelcard, monthly",171.7,TfL March 2026 fares
+Epsom (KT18/KT19),Epsom,outside zones,"Season to London Terminals, any permitted route, monthly",280.4,"Epsom Today, checked 9 Aug 2026"
+Stoneleigh (KT17/KT19),Stoneleigh,outside zones,Monthly season to London,212.8,Trainline monthly season (earlier research)
+Ewell West,Ewell West,outside zones,Monthly season to London,241.2,Trainline monthly season (earlier research)
+St Albans,St Albans City,outside zones,Monthly season to London Thameslink,440.5,Trainline (London Terminals £553.40)

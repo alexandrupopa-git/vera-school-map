@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to read this map — Vera's School Map</title>
+<style>
+  :root { --ink: #18212b; --muted: #5b6876; --line: #dde3e9; --accent: #0f6f8c; --bg: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e8edf2; --muted: #a6b2bf; --line: #2a3745; --accent: #4fb3cf; --bg: #121a22; } }
+  body { font: 14px/1.45 -apple-system, "IBM Plex Sans", "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); margin: 0; padding: 18px max(16px, env(safe-area-inset-right)) 28px max(16px, env(safe-area-inset-left)); }
+  main { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 15px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px 24px; }
+  .chip { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; color: #fff; }
+  ol, ul { padding-left: 20px; margin: 4px 0; } li { margin: 3px 0; }
+  .muted { color: var(--muted); } a { color: var(--accent); }
+  .box { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body><main>
+<h1>How to read Vera's School Map</h1>
+<p class="muted">One home from autumn 2028: state Reception in Sept 2029 and Year 7 in Sept 2036. Chances are history, not promises. <a href="index.html">Open the map</a> · <a href="sources.html">Sources</a></p>
+
+<div class="grid">
+  <div>
+    <h2>1 · Where to look</h2>
+    <p>The <b>green hex surface</b> scores every point: good primaries and strong secondaries Vera would <i>realistically</i> get into from there (High = 2 / 3 points, Medium = 1 / 1.5, grammar edge +0.5; weights on the Map tab). Darker is better. <b>Grey</b> hexes fail a requirement you set — e.g. "2 good primaries High + 1 strong secondary High + rent ≤ £2,500 + ≤ 40 min to Waterloo".</p>
+    <p>Numbered black pins are the workbook's 11 ranked spots; the blue outlines are their <b>search zones</b>: streets from which every High-rated key school stays inside its comfort radius. Hand the zone's postcode sectors and streets to agents (Pin tab → Search zone).</p>
+  </div>
+  <div>
+    <h2>2 · Check any address</h2>
+    <p><b>Tap the map</b>, or type a postcode or "lat, lon" and press <i>Check this spot</i>. The Pin tab answers: verdict, counts, every school in reach with its chance and reason, rent (now and 2028), commute and monthly total, zone, listing links, daily life, risks. Drag a pin to move it. <b>Save</b> keeps it with notes; <b>+ Compare</b> puts two or three side by side; <b>Share view</b> copies a link that reopens everything.</p>
+    <p>On a viewing trip: open the hosted link on your phone and press <b>⌖ Me</b>.</p>
+  </div>
+  <div>
+    <h2>3 · The chance labels</h2>
+    <ul>
+      <li><span class="chip" style="background:#1e8e4e">High</span> inside 75 % (Reception) / 85 % (Year 7) of the tightest 2024–26 cut-off, or every applicant was offered</li>
+      <li><span class="chip" style="background:#d99a1b;color:#111">Medium</span> inside the tightest cut-off, not the margin; also lotteries and ability-banded intakes</li>
+      <li><span class="chip" style="background:#e0702c">Low</span> inside only the widest recent cut-off</li>
+      <li><span class="chip" style="background:#c0392b">Very low</span> outside every recent cut-off</li>
+      <li><span class="chip" style="background:#7a3fb0">Test-dependent</span> grammar and test places — a bonus, never the plan</li>
+      <li><span class="chip" style="background:#8a94a0">Unknown</span> no usable data (e.g. Herts does not publish Sandringham's distance)</li>
+      <li><span class="chip" style="background:#a98bd0;color:#111">Faith decides</span> shown, never counted</li>
+    </ul>
+    <p>Rule-based schools (nearest-school in Herts, feeder primaries, Waldegrave's areas, ballots, bands) explain themselves on their row. "Borderline" means within 8 % of the next threshold. The <b>stress-test slider</b> shrinks every cut-off to see which spots survive.</p>
+  </div>
+  <div>
+    <h2>4 · Quality bars and labels</h2>
+    <p><b>Good primary</b>: Ofsted Good/Outstanding and 2-year KS2 reading-writing-maths ≥ 61.5 % (England). <b>Strong secondary</b>: Attainment 8 ≥ 51.2 (England 46.2 + 5). Both are sliders. Every secondary row says <b>comprehensive / grammar / partially selective</b>, banded or aptitude places, <b>girls or mixed</b>, and faith.</p>
+    <h2>5 · Rings and distance</h2>
+    <p>Click a school: dotted 2023, dashed 2024/25, solid 2026, tinted disc = comfort radius. Rings are straight lines from the school's postcode centre (±100–200 m). <b>Richmond and Hounslow measure the walking route</b>: the panel estimates it (straight line × 1.25, via the nearest bridge where the line crosses the Thames) and fetches a live route when online. The workbooks used the straight line, so a few of their ratings differ by one step; both are shown.</p>
+  </div>
+  <div>
+    <h2>6 · Money and commute</h2>
+    <p>Rent = the nearest researched postcode sector's Hutch average and listing samples (late 2026), coloured against £2,500 / £3,000; the 2028 figure compounds the borough's ONS annual change for two years and is a projection. Commute = walk to the nearest station + 5 min + TfL's peak journey time (arrive by 08:45) + 10 min at the other end; monthly ticket from TfL March 2026 fares or operator seasons.</p>
+  </div>
+  <div class="box">
+    <h2 style="margin-top:0">What is not on the map</h2>
+    <ul>
+      <li>Flood zones, Defra noise, air quality, crime, deprivation and census layers — each is a one-click link to the official map at your pin instead.</li>
+      <li>Isochrones; Merton, Waldegrave, Stamford Green and Herts priority-area boundaries (flagged per school with the official map link).</li>
+      <li>Heathrow corridors are approximate, Claude-drawn; check WebTrak.</li>
+      <li>Rightmove result pages cannot be deep-linked from a postcode, so its link opens the search form prefilled — one more click.</li>
+    </ul>
+  </div>
+</div>
+<p class="muted" style="margin-top:16px">Data compiled 1 Nov 2026 from the three workbooks and the map data pack; stations, parks and Tiffin areas added 1 Nov 2026 with sources. To update cut-offs or rents: edit the files in <code>source/</code>, run <code>python3 tools/build_data.py</code> then <code>python3 tools/build_exports.py</code>; thresholds live in <code>data/config.js</code>, typed rules in <code>data/rules.js</code>.</p>
+</main></body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "_comment": "Edit when you refresh. rent_change = ONS annual % change in private rents by local authority (used for the 2-year projection). england = national averages for the quality bars.",
+  "compiled": "2026-11-01",
+  "rent_change": { "Kingston": -0.4, "Camden": 1.4, "Lambeth": 3.4, "Wandsworth": 4.1, "Richmond": 5.4, "Merton": 5.5, "Epsom & Ewell": 4.6, "St Albans": 3.1 },
+  "rent_change_source": "ONS Price Index of Private Rents, year to Sep 2026 (published 21 Oct 2026)",
+  "england": { "a8": 46.2, "g5": 46.3, "p8": -0.03, "ks2": 0.615, "note": "A8 and grade-5 figures are 2025/26 provisional; KS2 bar = England average of 2024 and 2025" },
+  "changelog": [
+    "2026-11-01 — first build from the three workbooks and the map data pack"
+  ]
+}

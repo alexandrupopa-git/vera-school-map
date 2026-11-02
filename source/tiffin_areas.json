@@ -1,0 +1,57 @@
+{
+  "school": "The Tiffin Girls' School, Richmond Road, Kingston upon Thames KT2 5PL",
+  "policy_year": "Entry September 2027 (Determined Admissions Arrangements, para 5.3.1 and 5.4.1)",
+  "published_admission_number": 180,
+  "designated_area_postcode_districts": [
+    "KT1", "KT2", "KT3", "KT4", "KT5", "KT6", "KT7", "KT8", "KT9", "KT10", "KT12", "KT13", "KT17", "KT19",
+    "TW1", "TW2", "TW3", "TW4", "TW5", "TW7", "TW8", "TW9", "TW10", "TW11", "TW12", "TW13", "TW14", "TW15", "TW16", "TW17",
+    "SW13", "SW14", "SW15", "SW17", "SW18", "SW19", "SW20",
+    "W3", "W4", "W5", "W7", "W13",
+    "SM4",
+    "CR4"
+  ],
+  "designated_area_count": 44,
+  "designated_area_note": "Policy lists exactly 44 postal districts. Note KT11, KT14-16, KT18, KT20-24, TW6, TW18-20, SW16 are NOT included. Address used is the child's home address at the time of registering for the tests.",
+  "inner_area_wards": [
+    {"ward": "Berrylands", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Canbury Gardens", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Coombe Hill", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Coombe Vale", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Green Lane & St James", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Kingston Gate", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Kingston Town", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "New Malden Village", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Norbiton", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "St Mark's & Seething Wells", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Surbiton Hill", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Tudor", "borough": "Royal Borough of Kingston upon Thames"},
+    {"ward": "Ham, Petersham and Richmond Riverside", "borough": "London Borough of Richmond upon Thames"}
+  ],
+  "inner_area_count": 13,
+  "inner_area_note": "The policy lists the 13 wards (2022 ward boundaries) but does not assign each to a borough; it says only that they lie 'within the Royal Borough of Kingston upon Thames or the London Borough of Richmond upon Thames'. Borough attribution above is from the councils' current ward lists: 12 are Kingston wards and 'Ham, Petersham and Richmond Riverside' is a Richmond ward. Verify a specific address on the Kingston or Richmond council 'find my ward' pages.",
+  "place_rules": "PAN 180. Order: (1) EHCP naming the school. (2) Looked-after / previously looked-after children scoring at or above the 350th-ranked mark of all Stage Two sitters. (3) Up to 60 places for girls at or above the 350th-ranked mark, in priority order: (i) Designated Area residents eligible for Pupil Premium, then (ii) Inner Area residents; tie for the 60th place goes to the girl living nearest the school. (4) Remaining places (c.120) in rank order of combined Stage Two mark, Designated Area residents first, then those outside the Designated Area; tie for the 180th place: looked-after, then Pupil Premium, then nearest. Since the Designated Area was introduced in 2014 all places have gone to Designated Area residents; in 2024-26 all places went to Designated Area / Inner Area girls.",
+  "patterns_of_admission_2024_2026": {
+    "stage_one_candidates": {"2024": 1485, "2025": 1498, "2026": 1468},
+    "stage_one_designated_area": {"2024": 1294, "2025": 1364, "2026": 1322},
+    "stage_one_inner_area_subset": {"2024": 279, "2025": 255, "2026": 267},
+    "stage_two_candidates": {"2024": 465, "2025": 475, "2026": 474},
+    "stage_two_designated_area": {"2024": 425, "2025": 428, "2026": 428},
+    "stage_two_inner_area_subset": {"2024": 99, "2025": 100, "2026": 91},
+    "places": {"2024": 180, "2025": 180, "2026": 180},
+    "appeals_heard": {"2024": 5, "2025": 10, "2026": 8},
+    "appeals_successful": {"2024": 0, "2025": 0, "2026": 0},
+    "note": "The school does not publish how many of the 180 offers went to Inner Area vs other Designated Area girls, nor lowest qualifying rank/mark per area."
+  },
+  "sources": [
+    {"title": "Determined Admissions Arrangements for entry September 2027 (PDF)", "url": "https://fra1.digitaloceanspaces.com/tiffingirls.org/wp-content/uploads/2026/03/11120006/Determined-Admissions-Arrangements-for-entry-September-2027.pdf", "checked": "2026-11-01"},
+    {"title": "Patterns of Admission 2024-26 (PDF)", "url": "https://fra1.digitaloceanspaces.com/tiffingirls.org/wp-content/uploads/2026/09/02143656/Patterns-of-Admission-2024-26.pdf", "checked": "2026-11-01"},
+    {"title": "Admissions FAQs Sept 2027 (PDF)", "url": "https://fra1.digitaloceanspaces.com/tiffingirls.org/wp-content/uploads/2026/03/13141601/FAQ-Sep27-%40-100226.pdf", "checked": "2026-11-01"},
+    {"title": "Year 7 Admissions page", "url": "https://www.tiffingirls.org/admissions/year-7/", "checked": "2026-11-01"}
+  ],
+  "gaps": [
+    "Ward-to-borough mapping is not stated in the policy; attributed from council ward lists (12 Kingston, 1 Richmond).",
+    "No published split of the 180 offers between Inner Area and the rest of the Designated Area, and no lowest-qualifying-rank by area.",
+    "2028-entry policy not yet published on the site (checked 2026-11-01); 2027 policy used."
+  ],
+  "checked": "2026-11-01"
+}

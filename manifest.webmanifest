@@ -1,0 +1,5 @@
+{
+  "name": "Vera's School Map", "short_name": "School Map", "start_url": "./index.html", "scope": "./", "display": "standalone",
+  "background_color": "#f3f5f7", "theme_color": "#0f6f8c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
