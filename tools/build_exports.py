@@ -195,6 +195,7 @@ for i, c in enumerate(cats):
 out.append('</body></html>')
 open(os.path.join(ROOT, 'sources.html'), 'w', encoding='utf-8').write('\n'.join(out))
 print('sources rows', len(rows))
+subprocess.run(['python3', os.path.join(ROOT, 'tools', 'stamp.py')], check=False)
 # zone summary for README
 with open(os.path.join(ROOT, 'tools', 'zones_summary.txt'), 'w', encoding='utf-8') as f:
     for h, discs in zone_summary:
