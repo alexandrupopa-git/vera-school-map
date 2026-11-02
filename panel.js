@@ -64,6 +64,23 @@
   const RATE_BY_DISTRICT = [[/^(KT1|KT2|KT5|KT6)$/, 'Kingston'], [/^(TW\d+|SW13|SW14)$/, 'Richmond'], [/^(SW19|SW20)$/, 'Merton'], [/^(SW11|SW8|SW18)$/, 'Wandsworth'], [/^SW4$/, 'Lambeth'], [/^(NW6|NW2|NW3)$/, 'Camden'], [/^(KT17|KT18|KT19|KT4)$/, 'Epsom & Ewell'], [/^AL\d$/, 'St Albans']];
   function rateFor(codes) { for (const c of codes) { const d = c.split(' ')[0]; for (const [re, k] of RATE_BY_DISTRICT) if (re.test(d)) return { k, pct: D.meta.rent_change[k] }; } return null; }
   function median(a) { a = a.filter(x => x != null).sort((x, y) => x - y); if (!a.length) return null; const m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
+  // live market checks pasted by the user (Rightmove/Zoopla results text), kept in this browser
+  const MARKET = (function () { try { return JSON.parse(localStorage.getItem('sm_market') || '{}'); } catch (e) { return {}; } })();
+  function marketKey(lat, lon) { return lat.toFixed(3) + ',' + lon.toFixed(3); }
+  window.marketCheck = function (lat, lon) { return MARKET[marketKey(lat, lon)] || null; };
+  window.saveMarketCheck = function (lat, lon, m) { if (m) MARKET[marketKey(lat, lon)] = m; else delete MARKET[marketKey(lat, lon)]; try { localStorage.setItem('sm_market', JSON.stringify(MARKET)); } catch (e) {} };
+  window.parseListings = function (text) {
+    // £2,300 pcm / £2300 per month / £530 pw / £530 per week; ignores deposits and tiny or huge numbers
+    const re = /£\s?(\d{1,2}[,.]?\d{3}|\d{3,5})\s*(pcm|per\s+calendar\s+month|per\s+month|pw|per\s+week|p\/w|\/\s*month|\/\s*week)?/gi; const pcm = [], pw = [], bare = []; let m;
+    while ((m = re.exec(text))) { const v = parseFloat(m[1].replace(/[,.](?=\d{3})/, '')); const unit = (m[2] || '').toLowerCase(); if (!unit) bare.push(v); else if (/w/.test(unit) && !/month/.test(unit)) pw.push(Math.round(v * 52 / 12)); else pcm.push(v); }
+    // Rightmove prints each price as both pcm and pw: use the pcm figures, fall back to pw, then to bare £ amounts
+    const vals = (pcm.length ? pcm : (pw.length ? pw : bare)).filter(v => v >= 700 && v <= 9000);
+    if (!vals.length) return null;
+    const s = vals.slice().sort((a, b) => a - b); const med = s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+    const q1 = s[Math.floor((s.length - 1) * 0.25)], q3 = s[Math.ceil((s.length - 1) * 0.75)];
+    const cnt = text.match(/(\d+)\s+(?:results?|properties)/i);
+    return { n: vals.length, results: cnt ? parseInt(cnt[1], 10) : null, min: s[0], q1, med: Math.round(med), q3, max: s[s.length - 1], date: new Date().toISOString().slice(0, 10) };
+  };
   window.rentFor = function (lat, lon, pcInfo) {
     let best = null;
     D.rents.zones.forEach(z => { const d = SM.haversine(lat, lon, z.lat, z.lon); if (!best || d < best.d) best = { z, d }; });
@@ -79,7 +96,12 @@
     const isListing = r => /(listing sample|Rightmove|Zoopla)/.test(r.metric) && r.typ != null;
     const isCount = r => /count/.test(r.metric) || (/(listing|Rightmove|Zoopla)/.test(r.metric) && r.n && !isNaN(parseFloat(r.n)));
     const hutch = pool.filter(isHutch), listings = pool.filter(isListing);
-    const typical = z.typical || median(hutch.map(r => r.typ)) || median(listings.map(r => r.typ));
+    const hutchAvg = z.typical || median(hutch.map(r => r.typ));
+    const askingRows = listings.filter(r => /available|Rightmove|Zoopla/.test(r.metric) && !/^listing sample \(let agreed/.test(r.metric));
+    const asking = median(askingRows.map(r => r.typ)) || median(listings.map(r => r.typ));
+    // the headline is what you would see on Rightmove today (asking rents of new lets); averages of existing tenancies run lower
+    let typical = asking || hutchAvg;
+    const live = window.marketCheck(lat, lon); if (live && live.med) typical = live.med;
     const letAgreed = listings.filter(r => /let agreed/i.test(r.metric) && !/available/.test(r.metric));
     const available = listings.filter(r => /available/.test(r.metric) || (!/let agreed/i.test(r.metric)));
     const lows = listings.map(r => r.low).filter(x => x != null), highs = listings.map(r => r.high).filter(x => x != null && x < 6000);
@@ -87,7 +109,7 @@
     const rate = rateFor(pcInfo && pcInfo.outcode ? [pcInfo.outcode] : z.codes);
     const proj = typical && rate && rate.pct != null ? typical * Math.pow(1 + rate.pct / 100, C.projection_years) : null;
     const dates = Array.from(new Set(pool.map(r => r.date).filter(Boolean)));
-    return { zone: z, d: best.d, property: prop, typical, range: lows.length ? [Math.min(...lows), Math.max(...highs)] : null, available_med: median(available.map(r => r.typ)), let_med: median(letAgreed.map(r => r.typ)), rate, proj, counts, hutch, listings, dates, sources: pool.slice(0, 40) };
+    return { zone: z, d: best.d, property: prop, typical, asking, hutchAvg, live, basis: live ? 'live' : (asking ? 'asking' : 'average'), range: lows.length ? [Math.min(...lows), Math.max(...highs)] : null, available_med: median(available.map(r => r.typ)), let_med: median(letAgreed.map(r => r.typ)), rate, proj, counts, hutch, listings, dates, sources: pool.slice(0, 40) };
   };
 
   // ------------------------------------------------------------------ commute for a point
@@ -224,7 +246,7 @@
         <div class="stats" style="margin-top:8px">
           <div class="stat"><span class="v">${goodHigh.length}<span class="muted" style="font-size:13px">/${goodMed.length}</span></span><span class="l">good primaries High/Med</span></div>
           <div class="stat"><span class="v">${strongHigh.length}<span class="muted" style="font-size:13px">/${strongMed.length}</span></span><span class="l">strong secondaries High/Med</span></div>
-          <div class="stat"><span class="v">${rent && rent.typical ? gbp(rent.typical) : '–'}</span><span class="l">typical rent, ${rent ? rent.property : ''} ${budget ? '· ' + budget[0] : ''}</span></div>
+          <div class="stat"><span class="v">${rent && rent.typical ? gbp(rent.typical) : '–'}</span><span class="l">${rent && rent.basis === 'live' ? 'your live check' : rent && rent.basis === 'asking' ? 'asking rent' : 'average rent'}, ${rent ? rent.property : ''} ${budget ? '· ' + budget[0] : ''}</span></div>
           <div class="stat"><span class="v">${cm && cm.total != null ? cm.total + '′' : '–'}</span><span class="l">door-to-door to ${esc(S.req.dest || 'Waterloo')}</span></div>
         </div>
         ${sc.grammar_edge ? '<div class="small" style="margin-top:6px">Grammar edge: inside a local-priority area for a grammar school (bonus, never the plan).</div>' : ''}
@@ -240,7 +262,7 @@
         <div class="schools-list" style="margin-top:6px">${sec.filter(r => r.level === 'high' || r.level === 'medium' || r.d < 4.5 || r.level === 'test').slice(0, 16).map(r => schoolRow(r, refFor(p, r.school))).join('')}</div>
         <p class="tiny muted">Secondary entry is ten years away: cut-offs are history, not promises. Comprehensive / grammar / partially selective and girls / mixed are labelled on every row.</p>
       </details>
-      <details class="sec" open><summary>Rent — ${rent ? rent.property : ''}</summary>${renderRent(rent, budget, london)}</details>
+      <details class="sec" open><summary>Rent — ${rent ? rent.property : (london ? '2-bed' : '3-bed')}</summary>${renderRent(rent, budget, london, p)}</details>
       <details class="sec" open><summary>Commute & monthly total</summary>${renderCommute(p, cm, total, london)}</details>
       <details class="sec"><summary>Search zone & streets</summary><div id="zoneBox">${renderZoneBox(p, sc)}</div></details>
       <details class="sec" open><summary>Ask about this spot</summary><div id="chatBox"></div></details>
@@ -254,6 +276,8 @@
     $('#btnCmp').onclick = () => { if (S.compare.includes(p.id)) S.compare = S.compare.filter(x => x !== p.id); else { S.compare.push(p.id); if (S.compare.length > 3) S.compare.shift(); } window.renderCompare(); window.renderPin(p); window.pushUrl(); };
     $('#btnSave').onclick = () => { saveToShortlist(p, sc, rent, cm); window.renderPin(p); };
     $('#btnDel').onclick = () => window.removePin(p.id);
+    const ms = $('#marketSave'); if (ms) ms.onclick = () => { const m = window.parseListings($('#marketPaste').value); if (!m) { window.toast('No "£… pcm" prices found in the pasted text'); return; } window.saveMarketCheck(p.lat, p.lon, m); window.toast(`${m.n} prices read — median ${gbp(m.med)}`); window.renderPin(p); };
+    const mc = $('#marketClear'); if (mc) mc.onclick = () => { window.saveMarketCheck(p.lat, p.lon, null); window.renderPin(p); };
     el.querySelectorAll('.school-row').forEach(row => row.addEventListener('click', e => { if (e.target.closest('a')) return; const s = D.byId[row.dataset.sid]; window.selectSchool(s); }));
     el.querySelectorAll('[data-zone-toggle]').forEach(cb => cb.addEventListener('change', () => drawPinZone(p, sc)));
     drawPinZone(p, sc);
@@ -278,16 +302,25 @@
   };
   function key(p) { return p.lat.toFixed(4) + ',' + p.lon.toFixed(4); }
 
-  function renderRent(rent, budget, london) {
-    if (!rent) return `<p class="small muted">No researched rent data within 2.5 km of this spot. Use the listing links below to read the live market.</p>`;
-    const r = rent;
+  function renderRent(rent, budget, london, p) {
+    const r = rent; const live = p ? window.marketCheck(p.lat, p.lon) : null;
+    const budgetChip = budget ? `<span class="chip" style="border-color:var(--${budget[1] === 'good' ? 'high' : budget[1] === 'warn' ? 'medium' : 'verylow'})">${budget[0]}</span>` : '';
+    const checkBox = p ? `
+      <details class="small" style="margin-top:8px"><summary class="muted">Live market check — paste Rightmove / Zoopla results here</summary>
+        <p class="tiny muted" style="margin:6px 0">Open the drawn-zone or postcode search above, press <b>List</b> on Rightmove, select all (Cmd/Ctrl+A), copy, and paste the page text below. The map reads every "£… pcm" / "£… pw" on the page and uses the median as this spot's rent figure. Nothing leaves your browser; the check is dated and kept here.</p>
+        <textarea class="note-in" id="marketPaste" placeholder="Paste the results page text…"></textarea>
+        <div class="row" style="margin-top:6px"><button class="btn btn-sm" id="marketSave" type="button">Read prices</button>${live ? '<button class="btn btn-sm" id="marketClear" type="button">Remove my check</button>' : ''}</div>
+      </details>` : '';
+    if (!r && !live) return `<p class="small muted">No researched rent data within 2.5 km of this spot. Use the listing links below to read the live market, then paste the results here to record it.</p>` + checkBox;
     return `<dl class="kv" style="margin-top:6px">
-      <dt>Typical now</dt><dd><b class="num">${gbp(r.typical)}</b> pcm ${budget ? `<span class="chip" style="border-color:var(--${budget[1] === 'good' ? 'high' : budget[1] === 'warn' ? 'medium' : 'verylow'})">${budget[0]}</span>` : ''}<div class="tiny muted">${r.zone.typical ? 'workbook headline for this spot (Hutch average)' : 'median of Hutch ward/district averages'} · ${esc(r.zone.name.split(' — ').pop())}${r.d > 0.3 ? `, ${fmt(r.d)} km from the researched point` : ''}</div></dd>
-      <dt>Listings range</dt><dd>${r.range ? `<span class="num">${gbp(r.range[0])}–${gbp(r.range[1])}</span>` : '–'}${r.available_med ? ` · available median <span class="num">${gbp(r.available_med)}</span>` : ''}${r.let_med ? ` · let-agreed median <span class="num">${gbp(r.let_med)}</span>` : ''}<div class="tiny muted">${r.let_med && r.available_med ? (r.let_med < r.available_med ? 'Let-agreed prices sit below asking: good ones go at the lower end.' : 'Let-agreed prices at or above asking: a competitive patch.') : ''}</div></dd>
-      <dt>2028 projection</dt><dd>${r.proj ? `<span class="num">≈ ${gbp(r.proj)}</span> <span class="tiny muted">${r.rate.k} rents ${r.rate.pct >= 0 ? '+' : ''}${r.rate.pct}%/yr (ONS, year to Sep 2026) compounded ${C.projection_years} years — a projection, not a forecast</span>` : '<span class="muted">no borough rate in the pack</span>'}</dd>
+      ${live ? `<dt>Your live check</dt><dd><b class="num">${gbp(live.med)}</b> pcm median ${budgetChip}<div class="small">${live.n} prices read${live.results ? ` (${live.results} results)` : ''}: <span class="num">${gbp(live.min)}–${gbp(live.max)}</span>, middle half <span class="num">${gbp(live.q1)}–${gbp(live.q3)}</span> · ${esc(live.date)}</div><div class="tiny muted">Pasted from a listings page; this figure drives the budget colour and the monthly total.</div></dd>` : ''}
+      ${r ? `<dt>${live ? 'Researched asking' : 'Asking now'}</dt><dd>${r.asking ? `<b class="num">${gbp(r.asking)}</b> pcm median of new-let asking prices ${live ? '' : budgetChip}<div class="tiny muted">Rightmove/Zoopla samples, ${esc(((r.listings[0] || {}).date || '').slice(0, 24))} · ${esc(r.zone.name.split(' — ').pop())}${r.d > 0.3 ? `, ${fmt(r.d)} km from the researched point` : ''}</div>` : '<span class="muted">no listing sample in the pack for this patch</span>'}</dd>
+      <dt>Listings range</dt><dd>${r.range ? `<span class="num">${gbp(r.range[0])}–${gbp(r.range[1])}</span>` : '–'}${r.let_med ? ` · let-agreed median <span class="num">${gbp(r.let_med)}</span>` : ''}<div class="tiny muted">${r.let_med && r.asking ? (r.let_med < r.asking ? 'Let-agreed prices sit below asking: good ones go at the lower end.' : 'Let-agreed prices at or above asking: a competitive patch.') : ''} Samples are small (5–30 listings) and from ${esc(D.meta.compiled)}; the live check above is the better figure.</div></dd>
+      <dt>Average, all tenancies</dt><dd>${r.hutchAvg ? `<span class="num">${gbp(r.hutchAvg)}</span> <span class="tiny muted">Hutch ward/district average of ${r.property} lets${r.zone.typical ? ' (the workbook\'s headline)' : ''} — a blend of existing tenancies and new lets across the whole ward, so it can sit above or below what is on Rightmove today</span>` : '–'}</dd>
+      <dt>2028 projection</dt><dd>${r.proj ? `<span class="num">≈ ${gbp(r.proj)}</span> <span class="tiny muted">${r.rate.k} rents ${r.rate.pct >= 0 ? '+' : ''}${r.rate.pct}%/yr (ONS, year to Sep 2026) applied to the headline for ${C.projection_years} years — a projection, not a forecast</span>` : '<span class="muted">no borough rate in the pack</span>'}</dd>
       <dt>Stock</dt><dd>${r.counts.length ? r.counts.slice(0, 3).map(c => `<div class="tiny">${c.n} — ${esc(c.label)} (${esc(c.area)}, ${esc(c.date)})</div>`).join('') : '<span class="tiny muted">no listing counts in the pack for this patch</span>'}</dd>
-      <dt>Sources</dt><dd class="src">${r.sources.filter(s => s.url).slice(0, 6).map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.metric.slice(0, 40))}</a> (${esc(s.date.slice(0, 22))})`).join(' · ')}</dd>
-    </dl>`;
+      <dt>Sources</dt><dd class="src">${r.sources.filter(s => s.url).slice(0, 6).map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.metric.slice(0, 40))}</a> (${esc(s.date.slice(0, 22))})`).join(' · ')}</dd>` : ''}
+    </dl>` + checkBox;
   }
   function renderCommute(p, cm, total, london) {
     const dest = S.req.dest || 'Waterloo';
@@ -400,7 +433,8 @@
       ${row('Strong secondaries High / Med', d => `<span class="num">${d.sc.n_sec_high} / ${d.sc.n_sec_med}</span>`)}
       ${row('Best strong secondary (High)', d => d.best ? `${esc(d.best.school.name)}<div class="tiny muted">${esc(d.best.school.sel_short)}, ${esc(d.best.school.gender)}, A8 ${d.best.school.a8}</div>` : '–')}
       ${row('Grammar edge', d => d.sc.grammar_edge ? 'yes' : 'no')}
-      ${row('Typical rent', d => d.rent && d.rent.typical ? `<span class="num">${gbp(d.rent.typical)}</span> <span class="tiny muted">${d.rent.property}</span>` : '–')}
+      ${row('Rent (headline)', d => d.rent && d.rent.typical ? `<span class="num">${gbp(d.rent.typical)}</span> <span class="tiny muted">${d.rent.property} · ${d.rent.basis === 'live' ? 'your live check ' + d.rent.live.date : d.rent.basis === 'asking' ? 'asking, researched' : 'average'}</span>` : '–')}
+      ${row('Average, all tenancies', d => d.rent && d.rent.hutchAvg ? `<span class="num">${gbp(d.rent.hutchAvg)}</span>` : '–')}
       ${row('2028 projection', d => d.rent && d.rent.proj ? `<span class="num">≈${gbp(d.rent.proj)}</span>` : '–')}
       ${row('Door-to-door to ' + esc(S.req.dest || 'Waterloo'), d => d.cm && d.cm.total != null ? `<span class="num">${d.cm.total} min</span> <span class="tiny muted">via ${esc(d.cm.best.st.name)}</span>` : '–')}
       ${row('Monthly ticket', d => d.cost ? `<span class="num">${gbp(d.cost.cost)}</span>` : '–')}
