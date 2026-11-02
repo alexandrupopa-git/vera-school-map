@@ -119,7 +119,7 @@ table.tbl th { color: var(--ink-3); font-weight: 500; }
 textarea.note-in { width: 100%; min-height: 48px; font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 6px; background: var(--panel); color: var(--ink); }
 .pin-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
 .pin-head h2 { font-size: 17px; }
-.rankno { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: var(--panel); font-size: 12px; font-weight: 600; }
+.rankno { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #ffffff; color: #111111; border: 2px solid #18212b; font-size: 12px; font-weight: 700; }
 
 /* legend + hint */
 .legend { position: absolute; right: 10px; bottom: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; font-size: 12px; box-shadow: var(--shadow); max-width: 260px; z-index: 800; }
@@ -135,8 +135,8 @@ textarea.note-in { width: 100%; min-height: 48px; font: inherit; border: 1px sol
 .leaflet-tooltip.sm-tip { font: 12px var(--font); padding: 4px 8px; }
 .pin-marker { width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--accent); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 .pin-marker.active { background: #e4572e; }
-.home-marker { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: #fff; font: 600 12px var(--font); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
-.home-marker.minor { width: 10px; height: 10px; background: var(--ink-3); border-width: 1px; }
+.home-marker { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #ffffff; color: #111111; font: 700 13px var(--font); border: 2px solid #18212b; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.home-marker.minor { width: 10px; height: 10px; background: #7b8794; border: 1px solid #ffffff; }
 .station-marker { width: 10px; height: 10px; border-radius: 2px; background: #c0392b; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .park-marker { width: 12px; height: 12px; border-radius: 50%; background: #5a9f3e; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .leaflet-popup-content { font: 13px var(--font); margin: 10px 12px; }

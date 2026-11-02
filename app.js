@@ -190,7 +190,7 @@
     G.homes.clearLayers(); if (!S.layers.homes) return;
     D.homes.forEach(h => {
       const ranked = !!h.rank;
-      const icon = L.divIcon({ className: '', html: `<div class="home-marker ${ranked ? '' : 'minor'}">${ranked ? h.rank : ''}</div>`, iconSize: ranked ? [24, 24] : [10, 10], iconAnchor: ranked ? [12, 12] : [5, 5] });
+      const icon = L.divIcon({ className: '', html: `<div class="home-marker ${ranked ? '' : 'minor'}">${ranked ? h.rank : ''}</div>`, iconSize: ranked ? [26, 26] : [10, 10], iconAnchor: ranked ? [13, 13] : [5, 5] });
       const m = L.marker([h.lat, h.lon], { icon, zIndexOffset: ranked ? 500 : 0 });
       m.bindTooltip(`${ranked ? '#' + h.rank + ' ' : ''}${esc(h.name)}${ranked ? '<br>' + esc(h.verdict) : '<br><i>researched spot</i>'}`, { className: 'sm-tip', direction: 'top', offset: [0, -10] });
       m.on('click', e => { L.DomEvent.stopPropagation(e); window.dropPin(h.lat, h.lon, h.name, { home: h }); });
