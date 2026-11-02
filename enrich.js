@@ -6,29 +6,33 @@
   const cache = {}; // per pin id
 
   // ---------------- OSM via Overpass ----------------
+  const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter'];
+  async function opQuery(q) {
+    for (const u of OVERPASS) {
+      const j = await NET.json(u, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeoutMs: 20000 });
+      if (j && j.elements) return j;
+    }
+    return null;
+  }
   async function overpass(lat, lon) {
-    const q = `[out:json][timeout:25];(
-      way["leisure"~"^(park|garden|recreation_ground|common|nature_reserve|dog_park)$"](around:1500,${lat},${lon});
-      way["landuse"~"^(forest|village_green)$"](around:1500,${lat},${lon});
-      way["natural"~"^(wood|heath)$"](around:4000,${lat},${lon});
-      way["landuse"="forest"](around:4000,${lat},${lon});
-      way["highway"~"^(motorway|trunk|primary)$"](around:600,${lat},${lon});
-    );out center tags;`;
-    const j = await NET.json('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeoutMs: 30000 });
-    if (!j || !j.elements) return null;
+    // two small queries (public Overpass servers time out on big ones): greens + busy roads near by, woods a bit further
+    const q1 = `[out:json][timeout:15];(way["leisure"~"^(park|garden|recreation_ground|common|nature_reserve|dog_park)$"](around:1500,${lat},${lon});way["landuse"="village_green"](around:1500,${lat},${lon});way["highway"~"^(motorway|trunk|primary)$"](around:600,${lat},${lon}););out center tags;`;
+    const q2 = `[out:json][timeout:15];(way["natural"~"^(wood|heath)$"](around:2500,${lat},${lon});way["landuse"="forest"](around:2500,${lat},${lon}););out center tags;`;
+    const [j1, j2] = await Promise.all([opQuery(q1), opQuery(q2)]);
+    if (!j1 && !j2) return null;
     const greens = [], woods = [], roads = [];
-    j.elements.forEach(e => {
+    const handle = e => {
       const c = e.center || (e.lat != null ? { lat: e.lat, lon: e.lon } : null); if (!c) return;
       const t = e.tags || {}; const d = SM.haversine(lat, lon, c.lat, c.lon);
       if (t.highway) { roads.push({ name: t.ref ? `${t.ref}${t.name ? ' ' + t.name : ''}` : (t.name || t.highway), kind: t.highway, d }); return; }
-      const isWood = t.natural === 'wood' || t.landuse === 'forest' || t.natural === 'heath' || t.leisure === 'nature_reserve';
+      const isWood = t.natural === 'wood' || t.landuse === 'forest' || t.natural === 'heath';
       const item = { name: t.name || (isWood ? (t.natural === 'heath' ? 'unnamed heath' : 'unnamed wood') : 'unnamed green space'), kind: t.leisure || t.landuse || t.natural, d, named: !!t.name };
-      if (isWood) woods.push(item); if (!isWood || t.leisure === 'nature_reserve') greens.push(item);
-    });
+      if (isWood) woods.push(item); else greens.push(item);
+    };
+    (j1 ? j1.elements : []).forEach(handle); (j2 ? j2.elements : []).forEach(handle);
     const byD = (a, b) => a.d - b.d;
-    // de-duplicate by name, nearest first
     const dedupe = arr => { const seen = new Set(); return arr.sort(byD).filter(x => { const k = x.name; if (seen.has(k) && x.named) return false; seen.add(k); return true; }); };
-    return { greens: dedupe(greens).slice(0, 6), woods: dedupe(woods).slice(0, 5), roads: roads.sort(byD).slice(0, 3) };
+    return { greens: dedupe(greens).slice(0, 6), woods: dedupe(woods).slice(0, 5), roads: roads.sort(byD).slice(0, 3), partial: !(j1 && j2) };
   }
   // ---------------- drive times to nature (OSRM driving table; fallback estimate) ----------------
   async function driveTable(lat, lon, dests) {
@@ -79,7 +83,7 @@
         <dl class="kv">
           <dt>Nearest green space</dt><dd>${greenLive ? `<b>${esc(greenLive.name)}</b> (${esc(greenLive.kind)}) — about ${walk(greenLive.d)} min walk, ${fmt(greenLive.d)} km to its centre<div class="tiny muted">OpenStreetMap, live${osm.greens.length > 1 ? ' · also: ' + osm.greens.slice(1, 4).map(g => esc(g.name) + ' ' + fmt(g.d) + ' km').join(', ') : ''}</div>` : (park ? `<b>${esc(park.p.name)}</b> — about ${park.walk_min} min walk <span class="tiny muted">(hand-compiled list; ${status})</span>` : '–')}</dd>
           <dt>Off-lead park</dt><dd>${park ? `<b>${esc(park.p.name)}</b> — about ${park.walk_min} min walk (${fmt(park.d)} km to centre)<div class="tiny">${esc(park.p.off_lead)}</div><div class="tiny muted">${esc(park.p.notes || '')} <a href="${esc(park.p.source)}" target="_blank" rel="noopener">source</a></div>` : '–'}</dd>
-          <dt>Nearest wood / heath</dt><dd>${woodsLive ? `<b>${esc(woodsLive.name)}</b> — ${fmt(woodsLive.d)} km (about ${walk(woodsLive.d)} min on foot)<div class="tiny muted">OpenStreetMap, live${osm.woods.length > 1 ? ' · also: ' + osm.woods.slice(1, 3).map(g => esc(g.name) + ' ' + fmt(g.d) + ' km').join(', ') : ''}</div>` : `<span class="muted small">${status}</span>`}</dd>
+          <dt>Nearest wood / heath</dt><dd>${osm && !woodsLive && !osm.partial ? '<span class="small">No wood or heath mapped within 2.5 km (OpenStreetMap, live) — see the drive times below.</span>' : ''}${woodsLive ? `<b>${esc(woodsLive.name)}</b> — ${fmt(woodsLive.d)} km (about ${walk(woodsLive.d)} min on foot)<div class="tiny muted">OpenStreetMap, live${osm.woods.length > 1 ? ' · also: ' + osm.woods.slice(1, 3).map(g => esc(g.name) + ' ' + fmt(g.d) + ' km').join(', ') : ''}</div>` : `<span class="muted small">${status}</span>`}</dd>
           <dt>Forest-like areas by car</dt><dd>
             <table class="tbl"><tbody>${(drives || []).slice(0, 5).map(x => `<tr><td><b>${esc(x.dest.name)}</b><div class="tiny muted">${esc(x.dest.kind)} · ${esc(x.dest.dogs)}</div></td><td class="num" style="white-space:nowrap">${x.live ? '' : '≈'}${x.min != null ? x.min + ' min' : '–'}<div class="tiny muted">${x.km != null ? x.km + ' km' : ''}</div></td></tr>`).join('')}</tbody></table>
             <div class="tiny muted">${drives && drives.some(x => x.live) ? 'Driving times from OSRM (free-flow, no traffic); add 30–60% at a weekend peak. Entries marked ≈ are distance-based estimates.' : 'Estimated from straight-line distance (×1.3 at 24–55 km/h); live routing was not available. Approximate destination coordinates.'}</div></dd>
