@@ -7,16 +7,14 @@
 
   // ---------------- OSM via Overpass ----------------
   async function overpass(lat, lon) {
-    const q = `[out:json][timeout:20];(
+    const q = `[out:json][timeout:25];(
       way["leisure"~"^(park|garden|recreation_ground|common|nature_reserve|dog_park)$"](around:1500,${lat},${lon});
-      relation["leisure"~"^(park|common|nature_reserve)$"](around:1500,${lat},${lon});
-      way["landuse"~"^(forest|grass|meadow|village_green)$"](around:1500,${lat},${lon});
-      way["natural"~"^(wood|heath)$"](around:5000,${lat},${lon});
-      relation["natural"="wood"](around:5000,${lat},${lon});
-      way["landuse"="forest"](around:5000,${lat},${lon});
+      way["landuse"~"^(forest|village_green)$"](around:1500,${lat},${lon});
+      way["natural"~"^(wood|heath)$"](around:4000,${lat},${lon});
+      way["landuse"="forest"](around:4000,${lat},${lon});
       way["highway"~"^(motorway|trunk|primary)$"](around:600,${lat},${lon});
     );out center tags;`;
-    const j = await NET.json('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+    const j = await NET.json('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeoutMs: 30000 });
     if (!j || !j.elements) return null;
     const greens = [], woods = [], roads = [];
     j.elements.forEach(e => {
@@ -37,7 +35,12 @@
     const coords = [[lon, lat]].concat(dests.map(d => [d.lon, d.lat])).map(c => c.join(',')).join(';');
     const j = await NET.json(`https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&annotations=duration,distance`);
     if (!j || !j.durations || !j.durations[0]) return null;
-    return dests.map((d, i) => ({ dest: d, min: j.durations[0][i] != null ? Math.round(j.durations[0][i] / 60) : null, km: j.distances && j.distances[0][i] != null ? +(j.distances[0][i] / 1000).toFixed(1) : null, live: true }));
+    const est = driveEstimate(lat, lon, dests);
+    return dests.map((d, i) => {
+      const km = j.distances && j.distances[0][i] != null ? j.distances[0][i] / 1000 : null; const straight = SM.haversine(lat, lon, d.lat, d.lon);
+      if (km == null || km < straight * 0.8) return est[i]; // snapped to the wrong place (park interiors have no roads)
+      return { dest: d, min: Math.round(j.durations[0][i] / 60), km: +km.toFixed(1), live: true };
+    });
   }
   function driveEstimate(lat, lon, dests) {
     return dests.map(d => { const s = SM.haversine(lat, lon, d.lat, d.lon); const km = s * 1.3; const speed = km < 8 ? 24 : (km < 25 ? 35 : 55); return { dest: d, min: Math.round(km / speed * 60 + 3), km: +km.toFixed(1), live: false }; });
@@ -77,8 +80,8 @@
           <dt>Off-lead park</dt><dd>${park ? `<b>${esc(park.p.name)}</b> — about ${park.walk_min} min walk (${fmt(park.d)} km to centre)<div class="tiny">${esc(park.p.off_lead)}</div><div class="tiny muted">${esc(park.p.notes || '')} <a href="${esc(park.p.source)}" target="_blank" rel="noopener">source</a></div>` : '–'}</dd>
           <dt>Nearest wood / heath</dt><dd>${woodsLive ? `<b>${esc(woodsLive.name)}</b> — ${fmt(woodsLive.d)} km (about ${walk(woodsLive.d)} min on foot)<div class="tiny muted">OpenStreetMap, live${osm.woods.length > 1 ? ' · also: ' + osm.woods.slice(1, 3).map(g => esc(g.name) + ' ' + fmt(g.d) + ' km').join(', ') : ''}</div>` : `<span class="muted small">${status}</span>`}</dd>
           <dt>Forest-like areas by car</dt><dd>
-            <table class="tbl"><tbody>${(drives || []).slice(0, 5).map(x => `<tr><td><b>${esc(x.dest.name)}</b><div class="tiny muted">${esc(x.dest.kind)} · ${esc(x.dest.dogs)}</div></td><td class="num" style="white-space:nowrap">${x.min != null ? x.min + ' min' : '–'}<div class="tiny muted">${x.km != null ? x.km + ' km' : ''}</div></td></tr>`).join('')}</tbody></table>
-            <div class="tiny muted">${drives && drives[0] && drives[0].live ? 'Driving times from OSRM (free-flow, no traffic); add 30–60% at weekend peak.' : 'Estimated from straight-line distance (×1.3 at 24–55 km/h); live routing was not available. Approximate destination coordinates.'}</div></dd>
+            <table class="tbl"><tbody>${(drives || []).slice(0, 5).map(x => `<tr><td><b>${esc(x.dest.name)}</b><div class="tiny muted">${esc(x.dest.kind)} · ${esc(x.dest.dogs)}</div></td><td class="num" style="white-space:nowrap">${x.live ? '' : '≈'}${x.min != null ? x.min + ' min' : '–'}<div class="tiny muted">${x.km != null ? x.km + ' km' : ''}</div></td></tr>`).join('')}</tbody></table>
+            <div class="tiny muted">${drives && drives.some(x => x.live) ? 'Driving times from OSRM (free-flow, no traffic); add 30–60% at a weekend peak. Entries marked ≈ are distance-based estimates.' : 'Estimated from straight-line distance (×1.3 at 24–55 km/h); live routing was not available. Approximate destination coordinates.'}</div></dd>
           <dt>Nearest busy road</dt><dd>${osm ? (osm.roads.length ? `<b>${esc(osm.roads[0].name)}</b> (${esc(osm.roads[0].kind)} road) at about ${Math.round(osm.roads[0].d * 1000)} m${osm.roads[0].d < 0.15 ? ' — close enough to matter for NO₂ and noise' : osm.roads[0].d < 0.3 ? ' — within the typical roadside pollution band' : ''}<div class="tiny muted">A-roads, trunk roads and motorways within 600 m (OpenStreetMap, live)</div>` : 'No A-road, trunk road or motorway within 600 m <span class="tiny muted">(OpenStreetMap, live)</span>') : `<span class="muted small">${status}</span>`}</dd>
           <dt>Air quality</dt><dd>${aq ? `
             <table class="tbl"><thead><tr><th></th><th>7-day mean</th><th>now</th><th>vs guideline</th></tr></thead><tbody>

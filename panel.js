@@ -7,7 +7,7 @@
   const NET = window.NET = {
     online: true,
     async json(url, opts) {
-      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 9000);
+      const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), (opts && opts.timeoutMs) || 9000);
       try { const r = await fetch(url, Object.assign({ signal: ctrl.signal }, opts || {})); clearTimeout(t); if (!r.ok) throw new Error(r.status); NET.online = true; return await r.json(); }
       catch (e) { clearTimeout(t); return null; }
     },
