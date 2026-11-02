@@ -33,7 +33,8 @@
   // ---------------- drive times to nature (OSRM driving table; fallback estimate) ----------------
   async function driveTable(lat, lon, dests) {
     const coords = [[lon, lat]].concat(dests.map(d => [d.lon, d.lat])).map(c => c.join(',')).join(';');
-    const j = await NET.json(`https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&annotations=duration,distance`);
+    const destIdx = dests.map((_, i) => i + 1).join(';');
+    const j = await NET.json(`https://router.project-osrm.org/table/v1/driving/${coords}?sources=0&destinations=${destIdx}&annotations=duration,distance`);
     if (!j || !j.durations || !j.durations[0]) return null;
     const est = driveEstimate(lat, lon, dests);
     return dests.map((d, i) => {
